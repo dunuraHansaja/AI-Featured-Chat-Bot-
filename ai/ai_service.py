@@ -85,6 +85,7 @@ async def process_audio(audio: UploadFile = File(...)):
         }
     except Exception as e:
         # Clean up on error
+        print(f"Error processing audio: {e}")
         if os.path.exists(temp_path):
             os.remove(temp_path)
         raise HTTPException(status_code=500, detail=str(e))

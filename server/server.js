@@ -6,34 +6,31 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3003;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('uploads'));
 
-// MongoDB connection (assuming we'll use MongoDB for data storage)
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/erp', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log('MongoDB connected'))
-  .catch(err => console.log(err));
+// In-memory storage for development (replace with MongoDB later)
+let products = [
+  { _id: '1', name: 'rice', price: 350, stock: 100, category: 'food' },
+  { _id: '2', name: 'sugar', price: 250, stock: 50, category: 'food' },
+  { _id: '3', name: 'soap', price: 150, stock: 30, category: 'household' },
+  { _id: '4', name: 'car wash', price: 750, stock: 10, category: 'service' }
+];
 
-// Models
-const Product = mongoose.model('Product', {
-  name: String,
-  price: Number,
-  stock: Number,
-  category: String
-});
+let orders = [];
+let nextProductId = 5;
+let nextOrderId = 1;
 
-const Order = mongoose.model('Order', {
-  items: [{ product: String, quantity: Number, price: Number }],
-  total: Number,
-  status: { type: String, default: 'pending' },
-  createdAt: { type: Date, default: Date.now }
-});
+// Optional: Try MongoDB connection but don't fail if it's not available
+// mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/erp', {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true
+// }).then(() => console.log('MongoDB connected'))
+//   .catch(err => console.log('MongoDB not available, using in-memory storage'));
 
 // Multer setup for file uploads
 const storage = multer.diskStorage({
@@ -51,7 +48,6 @@ const upload = multer({ storage });
 // Get all products
 app.get('/api/products', async (req, res) => {
   try {
-    const products = await Product.find();
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -61,8 +57,13 @@ app.get('/api/products', async (req, res) => {
 // Add product
 app.post('/api/products', async (req, res) => {
   try {
-    const product = new Product(req.body);
-    await product.save();
+    const product = {
+      _id: nextProductId.toString(),
+      ...req.body,
+      createdAt: new Date()
+    };
+    products.push(product);
+    nextProductId++;
     res.json(product);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -72,7 +73,6 @@ app.post('/api/products', async (req, res) => {
 // Get all orders
 app.get('/api/orders', async (req, res) => {
   try {
-    const orders = await Order.find();
     res.json(orders);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -82,8 +82,13 @@ app.get('/api/orders', async (req, res) => {
 // Create order
 app.post('/api/orders', async (req, res) => {
   try {
-    const order = new Order(req.body);
-    await order.save();
+    const order = {
+      _id: nextOrderId.toString(),
+      ...req.body,
+      createdAt: new Date()
+    };
+    orders.push(order);
+    nextOrderId++;
     res.json(order);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -121,7 +126,7 @@ app.post('/api/process-voice', upload.single('audio'), async (req, res) => {
     let total = 0;
 
     for (const item of items) {
-      const product = await Product.findOne({ name: new RegExp(item.item, 'i') });
+      const product = products.find(p => p.name.toLowerCase().includes(item.item.toLowerCase()));
       if (product) {
         const quantity = parseFloat(item.quantity);
         const itemTotal = product.price * quantity;
@@ -134,8 +139,15 @@ app.post('/api/process-voice', upload.single('audio'), async (req, res) => {
       }
     }
 
-    const order = new Order({ items: orderItems, total });
-    await order.save();
+    const order = {
+      _id: nextOrderId.toString(),
+      items: orderItems,
+      total,
+      status: 'pending',
+      createdAt: new Date()
+    };
+    orders.push(order);
+    nextOrderId++;
 
     res.json({
       message: 'Order processed successfully',
@@ -151,8 +163,12 @@ app.post('/api/process-voice', upload.single('audio'), async (req, res) => {
 // Update order status
 app.put('/api/orders/:id', async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(order);
+    const orderIndex = orders.findIndex(o => o._id === req.params.id);
+    if (orderIndex === -1) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    orders[orderIndex] = { ...orders[orderIndex], ...req.body };
+    res.json(orders[orderIndex]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
