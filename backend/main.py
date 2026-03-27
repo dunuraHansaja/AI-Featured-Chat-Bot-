@@ -1,42 +1,69 @@
+import requests
 import whisper
 from googletrans import Translator
 import re
 
-model = whisper.load_model("base")
+AI_SERVICE_URL = 'http://localhost:5000/recommend'
 
-def speech_to_text(audio_file):
-    result = model.transcribe(audio_file)
-    return result["text"]
-
-# test
-text = speech_to_text("sample.wav")
-print("Converted Text:", text)
-
+model = whisper.load_model('base')
 translator = Translator()
 
+
+def speech_to_text(audio_file_path):
+    result = model.transcribe(audio_file_path)
+    return result.get('text', '').strip()
+
+
 def translate_to_english(text):
+    if not text:
+        return ''
     translated = translator.translate(text, dest='en')
     return translated.text
 
-print(translate_to_english(text))
 
 def extract_items(text):
+    # Keep or adapt this regex for your speech format
     pattern = r'(\d+\.?\d*\s?(kg|g|packet|packets|litre|ml))\s([a-zA-Z]+)'
-    
     matches = re.findall(pattern, text)
-    
     items = []
-    
+
     for match in matches:
         quantity = match[0]
         item = match[2]
-        
-        items.append({
-            "item": item,
-            "quantity": quantity
-        })
-    
+        items.append({'item': item, 'quantity': quantity})
+
     return items
+
+
+def request_recommendation(product, items=None):
+    payload = {'product': product}
+    if items:
+        # we send product list for upsert in model service
+        payload['items'] = items
+
+    resp = requests.post(AI_SERVICE_URL, json=payload, timeout=10)
+    resp.raise_for_status()
+    return resp.json()
+
+
+if __name__ == '__main__':
+    # Example local test path (use real path from your upload handling in production)
+    sample_audio = 'sample.wav'
+    text = speech_to_text(sample_audio)
+    print('Recognized text:', text)
+
+    text_en = translate_to_english(text)
+    print('Translated text:', text_en)
+
+    parsed_items = extract_items(text_en)
+    print('Extracted items:', parsed_items)
+
+    item_names = [i['item'] for i in parsed_items]
+    if item_names:
+        result = request_recommendation(product=item_names[0], items=item_names)
+        print('AI recommendation response:', result)
+    else:
+        print('No item found in transcript to recommend.')
 
 
 

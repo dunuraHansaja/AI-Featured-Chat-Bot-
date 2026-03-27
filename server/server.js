@@ -101,16 +101,18 @@ app.post('/api/process-voice', upload.single('audio'), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No audio file provided' });
     }
-
+console.log('Received audio file:', req.file);
     // Create form data for the AI service
     const FormData = require('form-data');
     const fs = require('fs');
     const form = new FormData();
-    
+    console.log('Received audio file:', req.file.path);
+
     form.append('audio', fs.createReadStream(req.file.path), {
       filename: req.file.originalname,
       contentType: req.file.mimetype
     });
+console.log('test');
 
     // Call Python AI service
     const response = await axios.post('http://localhost:8000/process-audio', form, {
@@ -118,7 +120,7 @@ app.post('/api/process-voice', upload.single('audio'), async (req, res) => {
       maxContentLength: Infinity,
       maxBodyLength: Infinity
     });
-
+console.log('AI Service Response:', response.data);
     const { text, items } = response.data;
 
     // Process the extracted items into an order

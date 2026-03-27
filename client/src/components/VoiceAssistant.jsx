@@ -6,8 +6,24 @@ const VoiceAssistant = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [messages, setMessages] = useState([]);
   const [currentOrder, setCurrentOrder] = useState(null);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [orderSaved, setOrderSaved] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+
+  const calculateRewardPoints = (total) => Math.floor(total / 150);
+
+  const handleSaveOrder = () => {
+    setOrderSaved(true);
+    setShowCheckoutModal(false);
+    setMessages(prev => [...prev, { type: 'bot', text: 'Order has been saved successfully.' }]);
+  };
+
+  const handleCheckout = () => {
+    setShowCheckoutModal(false);
+    setMessages(prev => [...prev, { type: 'bot', text: 'Proceeding to checkout. Please complete payment.' }]);
+    // Here you can add real checkout flow, e.g. navigate to /checkout if exists.
+  };
 
   const startRecording = async () => {
     try {
@@ -57,9 +73,10 @@ const VoiceAssistant = () => {
 
       if (order && order.items.length > 0) {
         setCurrentOrder(order);
+        setShowCheckoutModal(true);
         setMessages(prev => [...prev, {
           type: 'bot',
-          text: `Order created with ${order.items.length} items. Total: $${order.total.toFixed(2)}`
+          text: `Order created with ${order.items.length} items. Total: ₹${order.total.toFixed(2)}`
         }]);
       } else {
         setMessages(prev => [...prev, { type: 'bot', text: 'No items recognized in the voice message.' }]);
@@ -116,6 +133,67 @@ const VoiceAssistant = () => {
         </div>
       </div>
 
+      {showCheckoutModal && currentOrder && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div style={{
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            padding: '1.5rem',
+            width: '90%',
+            maxWidth: '480px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.25)'
+          }}>
+            <h3>Final Bill & Reward Points</h3>
+            <p><strong>Total:</strong> ₹{currentOrder.total.toFixed(2)}</p>
+            <p><strong>Reward points earned:</strong> {calculateRewardPoints(currentOrder.total)} point(s)</p>
+            <div style={{ maxHeight: '180px', overflowY: 'auto', marginBottom: '1rem', border: '1px solid #ddd', borderRadius: '6px', padding: '0.5rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '4px' }}>Item</th>
+                    <th style={{ textAlign: 'right', padding: '4px' }}>Qty</th>
+                    <th style={{ textAlign: 'right', padding: '4px' }}>Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentOrder.items.map((item, index) => (
+                    <tr key={index}>
+                      <td style={{ padding: '4px' }}>{item.product}</td>
+                      <td style={{ padding: '4px', textAlign: 'right' }}>{item.quantity}</td>
+                      <td style={{ padding: '4px', textAlign: 'right' }}>₹{item.price.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button className="btn btn-secondary" onClick={() => setShowCheckoutModal(false)} style={{ padding: '0.5rem 1rem' }}>
+                Close
+              </button>
+              <button className="btn btn-primary" onClick={handleSaveOrder} style={{ padding: '0.5rem 1rem' }}>
+                Save the order
+              </button>
+              <button className="btn btn-success" onClick={handleCheckout} style={{ padding: '0.5rem 1rem' }}>
+                Check out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {currentOrder && (
         <div className="card">
           <h3>Current Order</h3>
@@ -140,6 +218,10 @@ const VoiceAssistant = () => {
           <div style={{ marginTop: '1rem', fontWeight: 'bold' }}>
             Total: ${currentOrder.total.toFixed(2)}
           </div>
+          <button className="btn btn-primary" onClick={() => setShowCheckoutModal(true)} style={{ marginTop: '1rem' }}>
+            View Final Bill
+          </button>
+          {orderSaved && <p style={{ color: 'green', marginTop: '0.5rem' }}>Order saved locally.</p>}
         </div>
       )}
     </div>
