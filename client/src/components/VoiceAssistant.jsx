@@ -8,6 +8,7 @@ const VoiceAssistant = () => {
   const [currentOrder, setCurrentOrder] = useState(null);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [orderSaved, setOrderSaved] = useState(false);
+  const [textInput, setTextInput] = useState('');
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
@@ -68,8 +69,8 @@ const VoiceAssistant = () => {
 
       const { text, order } = response.data;
 
-      setMessages(prev => [...prev, { type: 'user', text: 'Voice message processed' }]);
-      setMessages(prev => [...prev, { type: 'bot', text: `Transcribed: "${text}"` }]);
+      setMessages(prev => [...prev, { type: 'user', text: 'Voice message processed', messageType: 'voice' }]);
+      setMessages(prev => [...prev, { type: 'bot', text: `Transcribed: "${text}"`, messageType: 'voice' }]);
 
       if (order && order.items.length > 0) {
         setCurrentOrder(order);
@@ -88,9 +89,10 @@ const VoiceAssistant = () => {
   };
 
   const sendTextMessage = async (text) => {
-    // For now, just add to messages. Could extend to process text orders
-    setMessages(prev => [...prev, { type: 'user', text }]);
-    setMessages(prev => [...prev, { type: 'bot', text: 'Text processing not implemented yet.' }]);
+    if (!text.trim()) return;
+    setMessages(prev => [...prev, { type: 'user', text, messageType: 'text' }]);
+    setTextInput('');
+    setMessages(prev => [...prev, { type: 'bot', text: 'Text processing not implemented yet.', messageType: 'text' }]);
   };
 
   return (
@@ -98,18 +100,63 @@ const VoiceAssistant = () => {
       <h1>Voice Assistant</h1>
 
       <div className="card" style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button
-            className={`btn ${isRecording ? 'btn-secondary' : 'btn-primary'}`}
-            onClick={isRecording ? stopRecording : startRecording}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
-            {isRecording ? 'Stop Recording' : 'Start Recording'}
-          </button>
-          <span style={{ color: isRecording ? '#ef4444' : '#6b7280' }}>
-            {isRecording ? 'Recording...' : 'Click to record voice order'}
-          </span>
+        <h3>Previous Chat History</h3>
+        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+          <table className="table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Type</th>
+                <th>Sender</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody>
+              {messages.map((message, index) => (
+                <tr key={index}>
+                  <td>{index + 1}</td>
+                  <td>{message.messageType || (message.type === 'user' ? 'voice' : 'bot')}</td>
+                  <td>{message.type === 'user' ? 'You' : 'Assistant'}</td>
+                  <td>{message.text}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              className={`btn ${isRecording ? 'btn-secondary' : 'btn-primary'}`}
+              onClick={isRecording ? stopRecording : startRecording}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+              {isRecording ? 'Stop Recording' : 'Start Recording'}
+            </button>
+            <span style={{ color: isRecording ? '#ef4444' : '#6b7280' }}>
+              {isRecording ? 'Recording...' : 'Voice'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Type your message here"
+              className="form-control"
+              style={{ flex: 1, minWidth: '200px' }}
+            />
+            <button
+              className="btn btn-primary"
+              onClick={() => sendTextMessage(textInput)}
+            >
+              <Send size={16} /> Send
+            </button>
+          </div>
         </div>
       </div>
 

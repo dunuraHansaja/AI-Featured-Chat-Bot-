@@ -123,14 +123,21 @@ console.log('test');
 console.log('AI Service Response:', response.data);
     const { text, items } = response.data;
 
+    console.log('Extracted text:', text);
+    console.log('Extracted items:', items);
+
     // Process the extracted items into an order
     const orderItems = [];
     let total = 0;
 
     for (const item of items) {
+      console.log('Processing item:', item);
       const product = products.find(p => p.name.toLowerCase().includes(item.item.toLowerCase()));
+      console.log('Found product:', product);
       if (product) {
-        const quantity = parseFloat(item.quantity);
+        // Extract numeric value from quantity string (e.g., "2 kg" -> 2)
+        const quantityMatch = item.quantity.match(/(\d+\.?\d*)/);
+        const quantity = quantityMatch ? parseFloat(quantityMatch[1]) : 1;
         const itemTotal = product.price * quantity;
         orderItems.push({
           product: product.name,
@@ -141,24 +148,35 @@ console.log('AI Service Response:', response.data);
       }
     }
 
-    const order = {
+    const order = orderItems.length > 0 ? {
       _id: nextOrderId.toString(),
       items: orderItems,
       total,
       status: 'pending',
       createdAt: new Date()
-    };
-    orders.push(order);
-    nextOrderId++;
+    } : null;
+
+    if (order) {
+      orders.push(order);
+      nextOrderId++;
+    }
 
     res.json({
-      message: 'Order processed successfully',
+      message: orderItems.length > 0 ? 'Order processed successfully' : 'Voice processed but no matching products found',
       text,
       order
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to process voice' });
+    console.error('Error processing voice:', error.message);
+    console.error('Full error:', error);
+
+    // Return a fallback response instead of failing
+    res.json({
+      message: 'Voice processing failed, but request recorded',
+      text: 'Unable to process audio at this time',
+      order: null,
+      error: error.message
+    });
   }
 });
 
