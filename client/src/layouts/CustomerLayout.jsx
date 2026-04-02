@@ -19,7 +19,7 @@ const CustomerLayout = ({ children }) => {
         <div className="header-content">
           <div className="brand">
             <MessageCircle size={24} />
-            <h1>AI Voice Assistant</h1>
+            <h1>ShoppySup</h1>
           </div>
           <div className="header-right">
             <span className="user-name">Hello, {user?.name}</span>

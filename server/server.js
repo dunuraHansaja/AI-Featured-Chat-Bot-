@@ -18,7 +18,18 @@ let products = [
   { _id: '1', name: 'rice', price: 350, stock: 100, category: 'food' },
   { _id: '2', name: 'sugar', price: 250, stock: 50, category: 'food' },
   { _id: '3', name: 'soap', price: 150, stock: 30, category: 'household' },
-  { _id: '4', name: 'car wash', price: 750, stock: 10, category: 'service' }
+  { _id: '4', name: 'car wash', price: 750, stock: 10, category: 'service' },
+  { _id: '5', name: 'milk', price: 180, stock: 80, category: 'food' },
+  { _id: '6', name: 'bread', price: 120, stock: 60, category: 'food' },
+  { _id: '7', name: 'butter', price: 400, stock: 40, category: 'food' },
+  { _id: '8', name: 'cheese', price: 500, stock: 35, category: 'food' },
+  { _id: '9', name: 'eggs', price: 300, stock: 90, category: 'food' },
+  { _id: '10', name: 'tea powder', price: 200, stock: 70, category: 'food' },
+  { _id: '11', name: 'coffee', price: 450, stock: 50, category: 'food' },
+  { _id: '12', name: 'salt', price: 80, stock: 100, category: 'food' },
+  { _id: '13', name: 'flour', price: 220, stock: 60, category: 'food' },
+  { _id: '14', name: 'noodles', price: 150, stock: 80, category: 'food' },
+  { _id: '15', name: 'biscuits', price: 100, stock: 120, category: 'food' }
 ];
 
 let orders = [];
